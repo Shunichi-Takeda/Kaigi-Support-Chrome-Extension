@@ -16,6 +16,7 @@
         "情報共有・調整": "報告者（現状を伝える）、調整者（利害を整える）、アクション確認（タスク復唱）"
     };
 
+    // 1on1の7つの目的カテゴリー
     const ONE_ON_ONE_CATEGORIES = [
         "1. 信頼関係の構築（プライベート・相互理解）",
         "2. 心身のコンディション確認（メンタル・健康）",
@@ -26,12 +27,16 @@
         "7. キャリア・ビジョン（中長期の展望）"
     ];
 
+    // 会議を「価値ある時間」にするための3つの約束
     const THREE_PROMISES = `
 --- 【会議を「価値ある時間」にするための3つの約束】 ---
 • 資産にする： ホワイトボードはチームの財産。記録を残し、次のアクションを明確にする。
 • 熱量を生む： PCを閉じ、相手の話を聴く。その集中が、議論の質とスピードを上げる。
 • 存在を示す： 会議にいる以上、あなたは当事者。必ず発言し、結論に責任を持つ。`;
 
+    /**
+     * アジェンダを生成する（プレースホルダ）
+     */
     async function generateAgenda(data) {
         return new Promise((resolve) => {
             setTimeout(() => {
@@ -60,6 +65,9 @@ ${THREE_PROMISES}`;
         });
     }
 
+    /**
+     * UIパネルを作成
+     */
     function createPanel() {
         if (document.getElementById('ksce-panel')) return null;
 
@@ -110,6 +118,7 @@ ${THREE_PROMISES}`;
         const typeSelect = panel.querySelector('#ksce-type');
         const optionalFields = panel.querySelectorAll('.ksce-optional-field');
 
+        // 種類変更時の表示制御
         typeSelect.addEventListener('change', () => {
             const is1on1 = typeSelect.value === '1on1';
             optionalFields.forEach(field => {
@@ -117,6 +126,7 @@ ${THREE_PROMISES}`;
             });
         });
 
+        // 生成ボタン
         panel.querySelector('#ksce-btn-generate').addEventListener('click', async (e) => {
             e.preventDefault();
             const data = {
@@ -142,6 +152,7 @@ ${THREE_PROMISES}`;
             btn.disabled = false;
         });
 
+        // 反映ボタン
         panel.querySelector('#ksce-btn-apply').addEventListener('click', (e) => {
             e.preventDefault();
             if (!lastGeneratedAgenda) {
@@ -157,65 +168,45 @@ ${THREE_PROMISES}`;
         return panel;
     }
 
-    function findDescriptionField() {
+    /**
+     * カレンダーの説明欄に反映する
+     */
+    function applyToDescription(text) {
         const selectors = [
-            'div[aria-label*="説明"]',
-            'div[aria-label*="Description"]',
+            'div[aria-label="説明を追加"]',
+            'div[aria-label="説明"]',
             'div#T2Ybvb',
-            'div[contenteditable="true"][role="textbox"]'
+            '.X76S9d div[contenteditable="true"]'
         ];
 
+        let target = null;
         for (const selector of selectors) {
-            const elements = document.querySelectorAll(selector);
-            for (const el of elements) {
-                if (el.getAttribute('contenteditable') === 'true' || el.querySelector('[contenteditable="true"]')) {
-                    return el.hasAttribute('contenteditable') ? el : el.querySelector('[contenteditable="true"]');
-                }
-            }
+            target = document.querySelector(selector);
+            if (target) break;
         }
-        return null;
-    }
-
-    function applyToDescription(text) {
-        const target = findDescriptionField();
 
         if (target) {
             target.focus();
             document.execCommand('selectAll', false, null);
             document.execCommand('insertText', false, text);
-            target.dispatchEvent(new Event('input', { bubbles: true }));
-            console.log("[KSCE] Applied agenda to description field.");
         } else {
-            alert("説明フィールドが見つかりませんでした。Googleカレンダーの仕様変更の可能性があります。");
+            alert("説明フィールドが見つかりませんでした。詳細画面を開いているか確認してください。");
         }
     }
 
-    function injectPanel() {
-        if (document.getElementById('ksce-panel')) return;
+    /**
+     * DOMの変更を監視してパネルを注入する
+     */
+    const observer = new MutationObserver((mutations) => {
+        const descContainers = document.querySelectorAll('.Yv9pS, .X76S9d, .RDv3Ec');
 
-        const descField = findDescriptionField();
-        if (!descField) return;
-
-        console.log("[KSCE] Found description field, attempting injection.");
-
-        // 注入場所の決定
-        // 説明フィールドのコンテナ（ツールバーやアイコンを含めた親要素）
-        const wrapper = descField.closest('.p97G6c, .j0S6Zc, .X76S9d') || descField.parentElement;
-
-        if (wrapper && wrapper.parentNode) {
+        descContainers.forEach(container => {
+            if (container.querySelector('#ksce-panel')) return;
             const panel = createPanel();
             if (panel) {
-                console.log("[KSCE] Injecting panel before description wrapper.");
-                wrapper.parentNode.insertBefore(panel, wrapper);
+                container.prepend(panel);
             }
-        }
-    }
-
-    // 定期的なチェック（MutationObserverが反応しない場合へのバックアップ）
-    setInterval(injectPanel, 3000);
-
-    const observer = new MutationObserver((mutations) => {
-        injectPanel();
+        });
     });
 
     observer.observe(document.body, {
@@ -223,5 +214,5 @@ ${THREE_PROMISES}`;
         subtree: true
     });
 
-    console.log("[KSCE] Observer started.");
+    console.log("Kaigi-Support-Chrome-Extension loaded with 1on1 support.");
 })();
