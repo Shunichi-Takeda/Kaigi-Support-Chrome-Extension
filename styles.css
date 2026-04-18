@@ -1,94 +1,114 @@
-.ksce-panel {
-    background-color: #f8f9fa;
-    border: 1px solid #dadce0;
-    border-radius: 8px;
-    padding: 16px;
-    margin: 10px 0;
-    font-family: 'Roboto', sans-serif;
-    color: #3c4043;
+:root {
+    --ksce-bg: #ffffff;
+    --ksce-text: #3c4043;
+    --ksce-border: #dadce0;
+    --ksce-input-bg: #ffffff;
+    --ksce-label-color: #5f6368;
+    --ksce-primary: #1a73e8;
+    --ksce-primary-hover: #1765cc;
+    --ksce-secondary-bg: #f8f9fa;
 }
 
-.ksce-title {
+@media (prefers-color-scheme: dark) {
+    :root {
+        --ksce-bg: #2d2e31;
+        --ksce-text: #e8eaed;
+        --ksce-border: #3c4043;
+        --ksce-input-bg: #35363a;
+        --ksce-label-color: #9aa0a6;
+        --ksce-primary: #8ab4f8;
+        --ksce-primary-hover: #aecbfa;
+        --ksce-secondary-bg: #202124;
+    }
+}
+
+/* Title Prefix Styles */
+.ksce-prefix-wrapper {
+    margin-right: 8px;
+    flex-shrink: 0;
+}
+
+.ksce-prefix-select {
+    padding: 4px 8px;
+    border: 1px solid var(--ksce-border);
+    border-radius: 4px;
+    background-color: var(--ksce-input-bg);
+    color: var(--ksce-text);
     font-size: 14px;
-    font-weight: 500;
-    margin-bottom: 12px;
-    color: #1a73e8;
-    display: flex;
-    align-items: center;
+    outline: none;
 }
 
-.ksce-field {
-    margin-bottom: 12px;
+/* Integrated Fields Styles */
+.ksce-integrated-fields {
+    margin: 16px 0;
+    padding: 12px;
+    background-color: var(--ksce-secondary-bg);
+    border-radius: 8px;
+    border: 1px solid var(--ksce-border);
 }
 
-.ksce-label {
+.ksce-field-row {
+    margin-bottom: 10px;
+}
+
+.ksce-compact-label {
     display: block;
-    font-size: 12px;
-    font-weight: 500;
+    font-size: 11px;
+    font-weight: 600;
     margin-bottom: 4px;
-    color: #70757a;
+    color: var(--ksce-label-color);
+    text-transform: uppercase;
 }
 
 .ksce-input, .ksce-select {
     width: 100%;
-    padding: 8px;
-    border: 1px solid #dadce0;
+    padding: 8px 10px;
+    border: 1px solid var(--ksce-border);
     border-radius: 4px;
     font-size: 13px;
     box-sizing: border-box;
     outline: none;
+    background-color: var(--ksce-input-bg);
+    color: var(--ksce-text);
 }
 
 .ksce-input:focus, .ksce-select:focus {
-    border-color: #1a73e8;
-    box-shadow: 0 0 0 1px #1a73e8;
+    border-color: var(--ksce-primary);
 }
 
-.ksce-button-group {
+.ksce-action-row {
     display: flex;
     gap: 8px;
-    margin-top: 16px;
-}
-
-.ksce-button {
-    flex: 1;
-    padding: 8px 16px;
-    border: none;
-    border-radius: 4px;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-.ksce-btn-generate {
-    background-color: #1a73e8;
-    color: white;
-}
-
-.ksce-btn-generate:hover {
-    background-color: #1765cc;
-}
-
-.ksce-btn-apply {
-    background-color: white;
-    border: 1px solid #dadce0;
-    color: #1a73e8;
-}
-
-.ksce-btn-apply:hover {
-    background-color: #f1f3f4;
-}
-
-.ksce-preview-area {
     margin-top: 12px;
-    padding: 8px;
-    background-color: #fff;
-    border: 1px solid #dadce0;
+}
+
+.ksce-btn-small {
+    flex: 1;
+    padding: 6px 12px;
+    border: 1px solid var(--ksce-primary);
     border-radius: 4px;
     font-size: 12px;
-    white-space: pre-wrap;
-    max-height: 150px;
-    overflow-y: auto;
-    display: none;
+    font-weight: 500;
+    cursor: pointer;
+    background-color: transparent;
+    color: var(--ksce-primary);
+    transition: all 0.2s;
+}
+
+.ksce-gen-btn {
+    background-color: var(--ksce-primary);
+    color: #ffffff;
+}
+
+.ksce-gen-btn:hover {
+    background-color: var(--ksce-primary-hover);
+}
+
+.ksce-apply-btn:hover {
+    background-color: rgba(26, 115, 232, 0.04);
+}
+
+/* Removal of old floating panel classes */
+.ksce-panel.floating {
+    display: none !important;
 }
