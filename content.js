@@ -15,22 +15,50 @@
         "情報共有・調整": "報告者（現状を伝える）、調整者（利害を整える）、アクション確認（タスク復唱）"
     };
 
+    // 1on1の7つの目的カテゴリー
+    const ONE_ON_ONE_CATEGORIES = [
+        "1. 信頼関係の構築（プライベート・相互理解）",
+        "2. 心身のコンディション確認（メンタル・健康）",
+        "3. 業務課題の解決・支援（障害の除去）",
+        "4. 戦略・目標のすり合わせ（アライメント）",
+        "5. フィードバック（評価と改善）",
+        "6. 能力開発・育成（スキルアップ）",
+        "7. キャリア・ビジョン（中長期の展望）"
+    ];
+
+    // 会議を「価値ある時間」にするための3つの約束
+    const THREE_PROMISES = `
+--- 【会議を「価値ある時間」にするための3つの約束】 ---
+• 資産にする： ホワイトボードはチームの財産。記録を残し、次のアクションを明確にする。
+• 熱量を生む： PCを閉じ、相手の話を聴く。その集中が、議論の質とスピードを上げる。
+• 存在を示す： 会議にいる以上、あなたは当事者。必ず発言し、結論に責任を持つ。`;
+
     /**
      * アジェンダを生成する（プレースホルダ）
      */
     async function generateAgenda(data) {
-        // 将来的なAPI連携を見据えた非同期処理の構造
         return new Promise((resolve) => {
             setTimeout(() => {
-                const role = ROLES[data.type] || "";
-                const agenda = `【種類】${data.type}
+                let agenda = "";
+                if (data.type === "1on1") {
+                    agenda = `【種類】1on1
+【概要】${data.summary || "定期1on1対話"}
+
+--- 1on1の7つの目的カテゴリー（本日話す項目を参加者と選択） ---
+${ONE_ON_ONE_CATEGORIES.join('\n')}
+`;
+                } else {
+                    const role = ROLES[data.type] || "";
+                    agenda = `【種類】${data.type}
 【概要】${data.summary}
 【ゴール】${data.goal}
 【資料URL】${data.url}
 【議事録】${data.minutes} / ${data.location}
 
 --- 代表的な役割 ---
-${role}`;
+${role}
+${THREE_PROMISES}`;
+                }
                 resolve(agenda);
             }, 500);
         });
@@ -54,21 +82,22 @@ ${role}`;
                     <option value="アイデア出し">アイデア出し</option>
                     <option value="意思決定">意思決定</option>
                     <option value="情報共有・調整">情報共有・調整</option>
+                    <option value="1on1">1on1</option>
                 </select>
             </div>
-            <div class="ksce-field">
+            <div class="ksce-field" id="ksce-summary-wrapper">
                 <label class="ksce-label">概要</label>
                 <input type="text" id="ksce-summary" class="ksce-input" placeholder="会議の簡単な背景">
             </div>
-            <div class="ksce-field">
+            <div class="ksce-field ksce-optional-field">
                 <label class="ksce-label">ゴール</label>
                 <input type="text" id="ksce-goal" class="ksce-input" placeholder="この会議の着地点">
             </div>
-            <div class="ksce-field">
+            <div class="ksce-field ksce-optional-field">
                 <label class="ksce-label">資料URL</label>
                 <input type="text" id="ksce-url" class="ksce-input" placeholder="参照資料のリンク">
             </div>
-            <div class="ksce-field">
+            <div class="ksce-field ksce-optional-field">
                 <label class="ksce-label">議事録の要否</label>
                 <div style="display: flex; gap: 8px;">
                     <select id="ksce-minutes-needed" class="ksce-select" style="flex: 1;">
@@ -85,11 +114,22 @@ ${role}`;
             <div id="ksce-preview" class="ksce-preview-area"></div>
         `;
 
-        // イベントリスナーの追加
+        const typeSelect = panel.querySelector('#ksce-type');
+        const optionalFields = panel.querySelectorAll('.ksce-optional-field');
+
+        // 種類変更時の表示制御
+        typeSelect.addEventListener('change', () => {
+            const is1on1 = typeSelect.value === '1on1';
+            optionalFields.forEach(field => {
+                field.style.display = is1on1 ? 'none' : 'block';
+            });
+        });
+
+        // 生成ボタン
         panel.querySelector('#ksce-btn-generate').addEventListener('click', async (e) => {
             e.preventDefault();
             const data = {
-                type: panel.querySelector('#ksce-type').value,
+                type: typeSelect.value,
                 summary: panel.querySelector('#ksce-summary').value,
                 goal: panel.querySelector('#ksce-goal').value,
                 url: panel.querySelector('#ksce-url').value,
@@ -111,6 +151,7 @@ ${role}`;
             btn.disabled = false;
         });
 
+        // 反映ボタン
         panel.querySelector('#ksce-btn-apply').addEventListener('click', (e) => {
             e.preventDefault();
             if (!lastGeneratedAgenda) {
@@ -130,12 +171,10 @@ ${role}`;
      * カレンダーの説明欄に反映する
      */
     function applyToDescription(text) {
-        // Googleカレンダーの説明欄（contenteditableのdiv）を探す
-        // 複数の場所（簡易ポップアップ、詳細編集画面）に対応
         const selectors = [
             'div[aria-label="説明を追加"]',
             'div[aria-label="説明"]',
-            'div#T2Ybvb', // 特定のID (変動の可能性あり)
+            'div#T2Ybvb',
             '.X76S9d div[contenteditable="true"]'
         ];
 
@@ -147,12 +186,8 @@ ${role}`;
 
         if (target) {
             target.focus();
-            // contenteditableへの挿入
-            // 単純に innerText を変えるだけでは React などの状態が更新されない場合があるため
-            // execCommand を使用（非推奨だが多くのブラウザで動作し、UIの整合性を保ちやすい）
             document.execCommand('selectAll', false, null);
             document.execCommand('insertText', false, text);
-            console.log("Agenda applied to description field.");
         } else {
             alert("説明フィールドが見つかりませんでした。詳細画面を開いているか確認してください。");
         }
@@ -162,16 +197,10 @@ ${role}`;
      * DOMの変更を監視してパネルを注入する
      */
     const observer = new MutationObserver((mutations) => {
-        // 説明フィールドの親要素や、特定のダイアログが表示されたかを確認
-        // Google Calendarのクラス名は難読化されているため、aria-labelや構造を頼りにする
-
-        // 「説明を追加」のプレースホルダやアイコンがある付近を探す
         const descContainers = document.querySelectorAll('.Yv9pS, .X76S9d, .RDv3Ec');
 
         descContainers.forEach(container => {
             if (container.querySelector('#ksce-panel')) return;
-
-            // 適切な挿入位置を探す（説明欄の上）
             const panel = createPanel();
             if (panel) {
                 container.prepend(panel);
@@ -179,11 +208,10 @@ ${role}`;
         });
     });
 
-    // 監視開始
     observer.observe(document.body, {
         childList: true,
         subtree: true
     });
 
-    console.log("Kaigi-Support-Chrome-Extension loaded.");
+    console.log("Kaigi-Support-Chrome-Extension loaded with 1on1 support.");
 })();
