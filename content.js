@@ -67,6 +67,12 @@ ${THREE_PROMISES}`;
         panel.id = 'ksce-panel';
         panel.className = 'ksce-panel floating';
 
+        // パネル内でのクリックがGoogleカレンダー側に「枠外クリック」として検知されないように保護
+        const stopPropagation = (e) => e.stopPropagation();
+        panel.addEventListener('click', stopPropagation);
+        panel.addEventListener('mousedown', stopPropagation);
+        panel.addEventListener('mouseup', stopPropagation);
+
         panel.innerHTML = `
             <div class="ksce-title">🗓 会議アジェンダ作成支援</div>
             <div class="ksce-field">
@@ -119,6 +125,7 @@ ${THREE_PROMISES}`;
 
         panel.querySelector('.ksce-btn-generate').addEventListener('click', async (e) => {
             e.preventDefault();
+            e.stopPropagation();
             const data = {
                 type: typeSelect.value,
                 summary: panel.querySelector('.ksce-summary').value,
@@ -144,6 +151,7 @@ ${THREE_PROMISES}`;
 
         panel.querySelector('.ksce-btn-apply').addEventListener('click', (e) => {
             e.preventDefault();
+            e.stopPropagation();
             if (!lastGeneratedAgenda) {
                 alert("先に「文言生成」を行ってください。");
                 return;
@@ -185,7 +193,6 @@ ${THREE_PROMISES}`;
 
         if (!target) {
             // 説明欄が隠れている（ボタン状態）の場合
-            // "説明" と "追加" の両方を含む要素、または data-key="description" を持つ要素を探す
             const addDescriptionBtn = Array.from(document.querySelectorAll('span, div, button, [data-key="description"]'))
                 .find(el => {
                     const txt = el.textContent || "";
@@ -212,7 +219,6 @@ ${THREE_PROMISES}`;
 
     function doApply(target, text) {
         target.focus();
-        // Googleカレンダーの内部状態を壊さないよう、execCommandを使用
         document.execCommand('selectAll', false, null);
         document.execCommand('insertText', false, text);
 
@@ -221,9 +227,9 @@ ${THREE_PROMISES}`;
     }
 
     function injectPanel() {
-        // 1. 詳細画面 (フルエディタ) - jsname="nB7Rvb"
+        // 1. 詳細画面 (フルエディタ)
         const fullEditContainer = document.querySelector('div[jsname="nB7Rvb"]');
-        // 2. 簡易ポップアップ - jsname="ssXDle"
+        // 2. 簡易ポップアップ
         const popupContainer = document.querySelector('div[jsname="ssXDle"]');
 
         const activeContainer = fullEditContainer || popupContainer;
@@ -237,7 +243,17 @@ ${THREE_PROMISES}`;
         let panel = document.getElementById('ksce-panel');
         if (!panel) {
             panel = createPanel();
-            if (panel) document.body.appendChild(panel);
+            if (panel) {
+                // ポップアップや詳細画面の要素内に直接入れることで、
+                // Googleカレンダー側の「枠外クリック」判定に引っかからないようにする
+                activeContainer.appendChild(panel);
+                console.log("[KSCE] Injected panel inside active container.");
+            }
+        }
+
+        if (panel && panel.parentElement !== activeContainer) {
+            // コンテナが切り替わった場合（例：ポップアップから詳細画面へ移行）の再配置
+            activeContainer.appendChild(panel);
         }
 
         if (panel) {
@@ -246,31 +262,25 @@ ${THREE_PROMISES}`;
     }
 
     function repositionPanel(panel, container) {
-        const rect = container.getBoundingClientRect();
-
-        // コンテナの右側に配置
-        let top = rect.top;
-        let left = rect.right + 15;
-
-        // 画面右端からはみ出る場合は左側に配置
-        if (left + 320 > window.innerWidth) {
-            left = rect.left - 335;
-        }
-
-        // 画面下端からはみ出る場合の調整
-        if (top + 400 > window.innerHeight) {
-            top = window.innerHeight - 410;
-        }
-
-        panel.style.top = Math.max(10, top) + 'px';
-        panel.style.left = Math.max(10, left) + 'px';
+        // コンテナの右外側に絶対配置
+        // container自体に position: absolute/fixed がついていることを期待
+        panel.style.top = '0px';
+        panel.style.left = '100%';
+        panel.style.marginLeft = '15px';
         panel.style.display = 'block';
+
+        // 画面右端からはみ出る場合の調整
+        const rect = panel.getBoundingClientRect();
+        if (rect.right > window.innerWidth) {
+            panel.style.left = 'auto';
+            panel.style.right = '100%';
+            panel.style.marginLeft = '0px';
+            panel.style.marginRight = '15px';
+        }
     }
 
-    // 定期的に実行して動的なDOM変化に対応
     setInterval(injectPanel, 1000);
 
-    // MutationObserverでより即座に対応
     const observer = new MutationObserver(injectPanel);
     observer.observe(document.body, { childList: true, subtree: true });
 
