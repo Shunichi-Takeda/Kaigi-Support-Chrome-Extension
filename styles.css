@@ -1,0 +1,94 @@
+.ksce-panel {
+    background-color: #f8f9fa;
+    border: 1px solid #dadce0;
+    border-radius: 8px;
+    padding: 16px;
+    margin: 10px 0;
+    font-family: 'Roboto', sans-serif;
+    color: #3c4043;
+}
+
+.ksce-title {
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 12px;
+    color: #1a73e8;
+    display: flex;
+    align-items: center;
+}
+
+.ksce-field {
+    margin-bottom: 12px;
+}
+
+.ksce-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    margin-bottom: 4px;
+    color: #70757a;
+}
+
+.ksce-input, .ksce-select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #dadce0;
+    border-radius: 4px;
+    font-size: 13px;
+    box-sizing: border-box;
+    outline: none;
+}
+
+.ksce-input:focus, .ksce-select:focus {
+    border-color: #1a73e8;
+    box-shadow: 0 0 0 1px #1a73e8;
+}
+
+.ksce-button-group {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.ksce-button {
+    flex: 1;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.ksce-btn-generate {
+    background-color: #1a73e8;
+    color: white;
+}
+
+.ksce-btn-generate:hover {
+    background-color: #1765cc;
+}
+
+.ksce-btn-apply {
+    background-color: white;
+    border: 1px solid #dadce0;
+    color: #1a73e8;
+}
+
+.ksce-btn-apply:hover {
+    background-color: #f1f3f4;
+}
+
+.ksce-preview-area {
+    margin-top: 12px;
+    padding: 8px;
+    background-color: #fff;
+    border: 1px solid #dadce0;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: pre-wrap;
+    max-height: 150px;
+    overflow-y: auto;
+    display: none;
+}
