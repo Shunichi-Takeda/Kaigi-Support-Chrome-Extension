@@ -110,6 +110,28 @@
                 resolve(response?.result || null);
             });
         });
+
+        prefixDiv.appendChild(select);
+
+        // Ensure wrapper layout
+        wrapper.style.display = 'flex';
+        wrapper.style.flexDirection = 'row';
+        wrapper.style.alignItems = 'center';
+
+        wrapper.insertBefore(prefixDiv, wrapper.firstChild);
+        console.log("[KSCE] Injected prefix dropdown.");
+
+        // 保存ボタンを監視
+        const saveBtn = container.querySelector('[jsname="x8hlje"], #xSaveBu, button[aria-label*="保存"], button[aria-label*="Save"]');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', () => {
+                const prefix = select.value;
+                if (prefix && !titleInput.value.startsWith(prefix)) {
+                    titleInput.value = prefix + titleInput.value;
+                    titleInput.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            }, { capture: true });
+        }
     }
 
     /**
@@ -786,8 +808,6 @@ ${typeGuidance}
                 geminiBtn.classList.remove('generating');
             }
         });
-
-        return panel;
     }
 
     function saveFormState(panel) {
