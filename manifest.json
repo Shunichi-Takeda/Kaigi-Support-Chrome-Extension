@@ -1,14 +1,18 @@
 {
   "manifest_version": 3,
   "name": "Kaigi-Support-Chrome-Extension",
-  "version": "1.3.0",
-  "description": "Googleカレンダーでの会議アジェンダ作成を支援する拡張機能 (AI統合版)",
+  "version": "1.0.0",
+  "description": "Googleカレンダーでの会議アジェンダ作成を支援するAI拡張機能",
   "permissions": [
-    "activeTab"
+    "activeTab",
+    "scripting"
   ],
   "host_permissions": [
     "https://calendar.google.com/*"
   ],
+  "background": {
+    "service_worker": "background.js"
+  },
   "content_scripts": [
     {
       "matches": [
