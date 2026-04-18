@@ -159,25 +159,18 @@ ${THREE_PROMISES}`;
 
     function findDescriptionField() {
         const selectors = [
-            'div[aria-label="説明を追加"]',
-            'div[aria-label="説明"]',
-            'div[aria-label="Add description"]',
-            'div[aria-label="Description"]',
-            '.X76S9d div[contenteditable="true"]',
-            '#T2Ybvb',
+            'div[aria-label*="説明"]',
+            'div[aria-label*="Description"]',
+            'div#T2Ybvb',
             'div[contenteditable="true"][role="textbox"]'
         ];
 
         for (const selector of selectors) {
-            const el = document.querySelector(selector);
-            if (el) return el;
-        }
-
-        const divs = document.querySelectorAll('div[contenteditable="true"]');
-        for (const div of divs) {
-            const label = div.getAttribute('aria-label') || "";
-            if (label.includes("説明") || label.toLowerCase().includes("description")) {
-                return div;
+            const elements = document.querySelectorAll(selector);
+            for (const el of elements) {
+                if (el.getAttribute('contenteditable') === 'true' || el.querySelector('[contenteditable="true"]')) {
+                    return el.hasAttribute('contenteditable') ? el : el.querySelector('[contenteditable="true"]');
+                }
             }
         }
         return null;
@@ -190,7 +183,6 @@ ${THREE_PROMISES}`;
             target.focus();
             document.execCommand('selectAll', false, null);
             document.execCommand('insertText', false, text);
-            // Inputイベントを発行（React等の状態更新を促す）
             target.dispatchEvent(new Event('input', { bubbles: true }));
             console.log("[KSCE] Applied agenda to description field.");
         } else {
@@ -199,39 +191,31 @@ ${THREE_PROMISES}`;
     }
 
     function injectPanel() {
-        const possibleContainers = document.querySelectorAll('.Yv9pS, .RDv3Ec, .X76S9d, .K70pS, .p97G6c');
+        if (document.getElementById('ksce-panel')) return;
 
-        possibleContainers.forEach(container => {
-            if (container.querySelector('#ksce-panel')) return;
+        const descField = findDescriptionField();
+        if (!descField) return;
 
-            const hasDescription = container.querySelector('[aria-label*="説明"], [aria-label*="Description"], [contenteditable="true"]');
+        console.log("[KSCE] Found description field, attempting injection.");
 
-            if (hasDescription) {
-                const panel = createPanel();
-                if (panel) {
-                    console.log("[KSCE] Injecting panel into container.");
-                    // 適切な挿入位置を決定
-                    // 説明アイコンや入力欄のラッパーの前に挿入
-                    const descWrapper = hasDescription.closest('.j0S6Zc, .p97G6c') || hasDescription.parentElement;
-                    if (descWrapper && descWrapper.parentNode) {
-                        descWrapper.parentNode.insertBefore(panel, descWrapper);
-                    } else {
-                        container.prepend(panel);
-                    }
-                }
+        // 注入場所の決定
+        // 説明フィールドのコンテナ（ツールバーやアイコンを含めた親要素）
+        const wrapper = descField.closest('.p97G6c, .j0S6Zc, .X76S9d') || descField.parentElement;
+
+        if (wrapper && wrapper.parentNode) {
+            const panel = createPanel();
+            if (panel) {
+                console.log("[KSCE] Injecting panel before description wrapper.");
+                wrapper.parentNode.insertBefore(panel, wrapper);
             }
-        });
+        }
     }
 
-    // 遅延実行と継続的な監視
-    setTimeout(injectPanel, 2000);
+    // 定期的なチェック（MutationObserverが反応しない場合へのバックアップ）
+    setInterval(injectPanel, 3000);
 
     const observer = new MutationObserver((mutations) => {
-        // 全てのMutationでinjectPanelを呼ぶのは重いため、要素の追加があった時のみに絞る
-        const hasAdditions = mutations.some(m => m.addedNodes.length > 0);
-        if (hasAdditions) {
-            injectPanel();
-        }
+        injectPanel();
     });
 
     observer.observe(document.body, {
