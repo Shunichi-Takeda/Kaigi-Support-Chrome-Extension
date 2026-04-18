@@ -60,13 +60,12 @@ ${THREE_PROMISES}`;
         });
     }
 
-    function createPanel(isPopupMode = false) {
-        const panelId = isPopupMode ? 'ksce-panel-popup' : 'ksce-panel';
-        if (document.getElementById(panelId)) return null;
+    function createPanel() {
+        if (document.getElementById('ksce-panel')) return null;
 
         const panel = document.createElement('div');
-        panel.id = panelId;
-        panel.className = 'ksce-panel' + (isPopupMode ? ' ksce-popup-mode' : '');
+        panel.id = 'ksce-panel';
+        panel.className = 'ksce-panel floating';
 
         panel.innerHTML = `
             <div class="ksce-title">🗓 会議アジェンダ作成支援</div>
@@ -159,25 +158,23 @@ ${THREE_PROMISES}`;
     }
 
     function findDescriptionField() {
+        // ID指定 (フルエディタ / ポップアップ展開後)
+        const idField = document.querySelector('#xDescIn [contenteditable="true"]');
+        if (idField) return idField;
+
+        // 一般的な属性
         const selectors = [
-            'div[aria-label*="説明"]',
-            'div[aria-label*="Description"]',
-            'div[contenteditable="true"][role="textbox"]',
-            'textarea[aria-label*="説明"]',
-            'textarea[aria-label*="Description"]'
+            'div[aria-label="説明"]',
+            'div[aria-label="説明を追加"]',
+            'div[aria-label="Description"]',
+            'div[aria-label="Add description"]',
+            'div[contenteditable="true"][role="textbox"]'
         ];
 
         for (const selector of selectors) {
             const elements = document.querySelectorAll(selector);
             for (const el of elements) {
-                // クイック作成画面の「説明を追加」というプレースホルダ的な要素も拾う必要がある
-                if (el.offsetParent !== null) { // 可視状態
-                    if (el.tagName === 'TEXTAREA' || el.getAttribute('contenteditable') === 'true') {
-                        return el;
-                    }
-                    const editable = el.querySelector('[contenteditable="true"]');
-                    if (editable) return editable;
-                }
+                if (el.offsetParent !== null) return el;
             }
         }
         return null;
@@ -187,18 +184,26 @@ ${THREE_PROMISES}`;
         let target = findDescriptionField();
 
         if (!target) {
-            // クイック作成画面でまだ「説明を追加」がクリックされていない場合、それを探してクリックを試みる
-            const addDescriptionBtn = Array.from(document.querySelectorAll('div[role="button"]'))
-                .find(el => el.textContent.includes("説明を追加") || el.textContent.includes("Add description"));
+            // 説明欄が隠れている（ボタン状態）の場合
+            // "説明" と "追加" の両方を含む要素、または data-key="description" を持つ要素を探す
+            const addDescriptionBtn = Array.from(document.querySelectorAll('span, div, button, [data-key="description"]'))
+                .find(el => {
+                    const txt = el.textContent || "";
+                    const isMatch = (txt.includes("説明") && txt.includes("追加")) ||
+                                    (txt.includes("Add") && txt.includes("description")) ||
+                                    (el.getAttribute('data-key') === 'description');
+                    return isMatch && (el.getAttribute('role') === 'button' || el.closest('[role="button"]'));
+                });
 
             if (addDescriptionBtn) {
-                addDescriptionBtn.click();
+                const clickTarget = addDescriptionBtn.getAttribute('role') === 'button' ? addDescriptionBtn : addDescriptionBtn.closest('[role="button"]');
+                clickTarget.click();
                 setTimeout(() => {
                     target = findDescriptionField();
                     if (target) doApply(target, text);
-                }, 100);
+                }, 300);
             } else {
-                alert("説明フィールドが見つかりませんでした。");
+                alert("説明フィールドが見つかりませんでした。画面上の「説明を追加」をクリックしてから再度お試しください。");
             }
         } else {
             doApply(target, text);
@@ -207,86 +212,65 @@ ${THREE_PROMISES}`;
 
     function doApply(target, text) {
         target.focus();
-        if (target.tagName === 'TEXTAREA') {
-            target.value = text;
-        } else {
-            document.execCommand('selectAll', false, null);
-            document.execCommand('insertText', false, text);
-        }
+        // Googleカレンダーの内部状態を壊さないよう、execCommandを使用
+        document.execCommand('selectAll', false, null);
+        document.execCommand('insertText', false, text);
+
         target.dispatchEvent(new Event('input', { bubbles: true }));
         console.log("[KSCE] Applied agenda.");
     }
 
     function injectPanel() {
-        // 1. フル編集画面のチェック
-        injectToFullEdit();
+        // 1. 詳細画面 (フルエディタ) - jsname="nB7Rvb"
+        const fullEditContainer = document.querySelector('div[jsname="nB7Rvb"]');
+        // 2. 簡易ポップアップ - jsname="ssXDle"
+        const popupContainer = document.querySelector('div[jsname="ssXDle"]');
 
-        // 2. クイック作成画面（ポップアップ）のチェック
-        injectToPopup();
-    }
+        const activeContainer = fullEditContainer || popupContainer;
 
-    function injectToFullEdit() {
-        if (document.getElementById('ksce-panel')) return;
-
-        const descField = findDescriptionField();
-        if (!descField) return;
-
-        // フル編集画面特有のコンテナを探す
-        const wrapper = descField.closest('.p97G6c, .j0S6Zc, .X76S9d');
-        if (wrapper && wrapper.parentNode) {
-            // すでにポップアップモードのパネルがある場合は消す
-            const oldPopup = document.getElementById('ksce-panel-popup');
-            if (oldPopup) oldPopup.remove();
-
-            const panel = createPanel(false);
-            if (panel) {
-                wrapper.parentNode.insertBefore(panel, wrapper);
-                console.log("[KSCE] Injected into full edit screen.");
-            }
-        }
-    }
-
-    function injectToPopup() {
-        // クイック作成ポップアップ（通常 role="dialog" または特定のクラス）
-        const popup = document.querySelector('div[role="dialog"][aria-labelledby*="title"], .F26OHc, .K9vS1c');
-        if (!popup) {
-            const oldPopupPanel = document.getElementById('ksce-panel-popup');
-            if (oldPopupPanel) oldPopupPanel.remove();
+        if (!activeContainer) {
+            const existingPanel = document.getElementById('ksce-panel');
+            if (existingPanel) existingPanel.remove();
             return;
         }
 
-        if (document.getElementById('ksce-panel-popup')) {
-            repositionPopupPanel(popup);
-            return;
+        let panel = document.getElementById('ksce-panel');
+        if (!panel) {
+            panel = createPanel();
+            if (panel) document.body.appendChild(panel);
         }
 
-        // フル編集画面が背後にある可能性があるので、フル編集画面内への注入は避ける
-        if (document.getElementById('ksce-panel')) return;
-
-        const panel = createPanel(true);
         if (panel) {
-            document.body.appendChild(panel);
-            repositionPopupPanel(popup);
-            console.log("[KSCE] Injected beside popup.");
+            repositionPanel(panel, activeContainer);
         }
     }
 
-    function repositionPopupPanel(popup) {
-        const panel = document.getElementById('ksce-panel-popup');
-        if (!panel) return;
+    function repositionPanel(panel, container) {
+        const rect = container.getBoundingClientRect();
 
-        const rect = popup.getBoundingClientRect();
-        panel.style.top = rect.top + 'px';
-        panel.style.left = (rect.right + 10) + 'px';
+        // コンテナの右側に配置
+        let top = rect.top;
+        let left = rect.right + 15;
 
-        // 画面外にはみ出す場合の調整
-        if (rect.right + 10 + 320 > window.innerWidth) {
-            panel.style.left = (rect.left - 330) + 'px';
+        // 画面右端からはみ出る場合は左側に配置
+        if (left + 320 > window.innerWidth) {
+            left = rect.left - 335;
         }
+
+        // 画面下端からはみ出る場合の調整
+        if (top + 400 > window.innerHeight) {
+            top = window.innerHeight - 410;
+        }
+
+        panel.style.top = Math.max(10, top) + 'px';
+        panel.style.left = Math.max(10, left) + 'px';
+        panel.style.display = 'block';
     }
 
+    // 定期的に実行して動的なDOM変化に対応
     setInterval(injectPanel, 1000);
 
+    // MutationObserverでより即座に対応
     const observer = new MutationObserver(injectPanel);
     observer.observe(document.body, { childList: true, subtree: true });
 
