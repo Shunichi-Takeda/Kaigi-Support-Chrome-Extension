@@ -1,11 +1,23 @@
 .ksce-panel {
-    background-color: #f8f9fa;
+    background-color: #ffffff;
     border: 1px solid #dadce0;
     border-radius: 8px;
     padding: 16px;
     margin: 10px 0;
     font-family: 'Roboto', sans-serif;
     color: #3c4043;
+    box-shadow: 0 1px 2px 0 rgba(60,64,67,0.302), 0 1px 3px 1px rgba(60,64,67,0.149);
+    z-index: 2000;
+    transition: opacity 0.3s ease;
+}
+
+.ksce-panel.ksce-popup-mode {
+    position: fixed;
+    width: 300px;
+    margin: 0;
+    max-height: 85vh;
+    overflow-y: auto;
+    border: 1px solid rgba(0,0,0,0.1);
 }
 
 .ksce-title {
@@ -15,6 +27,8 @@
     color: #1a73e8;
     display: flex;
     align-items: center;
+    border-bottom: 1px solid #f1f3f4;
+    padding-bottom: 8px;
 }
 
 .ksce-field {
@@ -23,23 +37,28 @@
 
 .ksce-label {
     display: block;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 500;
     margin-bottom: 4px;
     color: #70757a;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .ksce-input, .ksce-select {
     width: 100%;
-    padding: 8px;
+    padding: 8px 10px;
     border: 1px solid #dadce0;
     border-radius: 4px;
     font-size: 13px;
     box-sizing: border-box;
     outline: none;
+    background-color: #f8f9fa;
+    transition: background-color 0.2s, border-color 0.2s;
 }
 
 .ksce-input:focus, .ksce-select:focus {
+    background-color: #ffffff;
     border-color: #1a73e8;
     box-shadow: 0 0 0 1px #1a73e8;
 }
@@ -52,13 +71,13 @@
 
 .ksce-button {
     flex: 1;
-    padding: 8px 16px;
+    padding: 8px 12px;
     border: none;
     border-radius: 4px;
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: background-color 0.2s, box-shadow 0.2s;
 }
 
 .ksce-btn-generate {
@@ -68,6 +87,7 @@
 
 .ksce-btn-generate:hover {
     background-color: #1765cc;
+    box-shadow: 0 1px 2px 0 rgba(26,115,232,0.45), 0 1px 3px 1px rgba(26,115,232,0.3);
 }
 
 .ksce-btn-apply {
@@ -77,18 +97,22 @@
 }
 
 .ksce-btn-apply:hover {
-    background-color: #f1f3f4;
+    background-color: #f8f9fa;
+    border-color: #d2e3fc;
 }
 
 .ksce-preview-area {
     margin-top: 12px;
-    padding: 8px;
-    background-color: #fff;
+    padding: 10px;
+    background-color: #f1f3f4;
     border: 1px solid #dadce0;
     border-radius: 4px;
     font-size: 12px;
+    font-family: 'Roboto Mono', monospace;
     white-space: pre-wrap;
-    max-height: 150px;
+    max-height: 200px;
     overflow-y: auto;
     display: none;
+    color: #202124;
+    line-height: 1.4;
 }
