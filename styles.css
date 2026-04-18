@@ -7,6 +7,9 @@
     --ksce-primary: #1a73e8;
     --ksce-primary-hover: #1765cc;
     --ksce-secondary-bg: #f8f9fa;
+    --ksce-gemini-start: #4285f4;
+    --ksce-gemini-mid: #9b72cb;
+    --ksce-gemini-end: #d96570;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -19,50 +22,184 @@
         --ksce-primary: #8ab4f8;
         --ksce-primary-hover: #aecbfa;
         --ksce-secondary-bg: #202124;
+        --ksce-gemini-start: #8ab4f8;
+        --ksce-gemini-mid: #c58af9;
+        --ksce-gemini-end: #f28b82;
     }
 }
 
-/* Title Prefix Styles */
-.ksce-prefix-wrapper {
-    margin-right: 8px;
-    flex-shrink: 0;
-}
-
-.ksce-prefix-select {
-    padding: 4px 8px;
+/* ===== Generation Panel ===== */
+.ksce-gen-panel {
     border: 1px solid var(--ksce-border);
-    border-radius: 4px;
-    background-color: var(--ksce-input-bg);
-    color: var(--ksce-text);
-    font-size: 14px;
-    outline: none;
-}
-
-/* Integrated Fields Styles */
-.ksce-integrated-fields {
-    margin: 16px 0;
-    padding: 12px;
-    background-color: var(--ksce-secondary-bg);
     border-radius: 8px;
-    border: 1px solid var(--ksce-border);
+    background-color: var(--ksce-secondary-bg);
+    margin: 8px 16px;
+    overflow: visible;
+    transition: all 0.25s ease;
+    position: relative;
+    z-index: 10;
+}
+
+/* Popup: 1.5x wider — target outer container and inner */
+div[jsname="ssXDle"],
+div[jsname="SF0uGd"].ChfiMc {
+    min-width: 600px !important;
+    width: 600px !important;
+}
+div[jsname="ssXDle"] .ksce-gen-panel {
+    margin: 8px 12px;
+}
+
+.ksce-gen-panel select {
+    position: relative;
+    z-index: 20;
+}
+
+.ksce-gen-panel.collapsed .ksce-gen-panel-body {
+    display: none;
+}
+
+/* Header */
+.ksce-gen-panel-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 4px 4px 0;
+    user-select: none;
+}
+
+/* Toggle area */
+.ksce-gen-panel-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    padding: 4px 8px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.15s;
+}
+
+.ksce-gen-panel-toggle:hover {
+    background-color: rgba(26, 115, 232, 0.06);
+}
+
+.ksce-gen-panel-chevron {
+    font-size: 12px;
+    color: var(--ksce-label-color);
+    transition: transform 0.25s ease;
+    flex-shrink: 0;
+    width: 16px;
+    text-align: center;
+}
+
+.ksce-gen-panel.collapsed .ksce-gen-panel-chevron {
+    transform: rotate(-90deg);
+}
+
+.ksce-gen-panel-title {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ksce-label-color);
+    flex: 1;
+}
+
+/* Gemini AI Button */
+.ksce-gemini-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    background: linear-gradient(135deg, var(--ksce-gemini-start), var(--ksce-gemini-mid), var(--ksce-gemini-end));
+    color: #fff;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    position: relative;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+
+.ksce-gemini-btn:hover:not(:disabled) {
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(66, 133, 244, 0.4);
+}
+
+.ksce-gemini-btn:active:not(:disabled) {
+    transform: scale(0.95);
+}
+
+.ksce-gemini-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.ksce-gemini-btn.disabled {
+    background: #9aa0a6;
+}
+
+.ksce-gemini-btn.generating {
+    animation: ksce-pulse 1.2s infinite;
+}
+
+@keyframes ksce-pulse {
+    0%, 100% { box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
+    50% { box-shadow: 0 0 12px rgba(66, 133, 244, 0.6); }
+}
+
+.ksce-gemini-icon {
+    width: 18px;
+    height: 18px;
+    fill: #ffffff;
+}
+
+/* Panel body */
+.ksce-gen-panel-body {
+    padding: 8px 12px 12px;
+    border-top: 1px solid var(--ksce-border);
 }
 
 .ksce-field-row {
-    margin-bottom: 10px;
+    margin-bottom: 8px;
+}
+
+.ksce-field-row:last-child {
+    margin-bottom: 0;
+}
+
+/* Three-column row for 場所 + 会議の種類 + 時間 */
+.ksce-row-triple {
+    display: flex;
+    gap: 8px;
+}
+
+.ksce-field-col {
+    flex: 1;
+    min-width: 0;
+}
+
+.ksce-field-col-narrow {
+    flex: 0 0 75px;
+    min-width: 0;
 }
 
 .ksce-compact-label {
     display: block;
     font-size: 11px;
     font-weight: 600;
-    margin-bottom: 4px;
+    margin-bottom: 3px;
     color: var(--ksce-label-color);
     text-transform: uppercase;
+    letter-spacing: 0.3px;
 }
 
-.ksce-input, .ksce-select {
+.ksce-input, .ksce-select, .ksce-textarea {
     width: 100%;
-    padding: 8px 10px;
+    padding: 6px 8px;
     border: 1px solid var(--ksce-border);
     border-radius: 4px;
     font-size: 13px;
@@ -70,45 +207,78 @@
     outline: none;
     background-color: var(--ksce-input-bg);
     color: var(--ksce-text);
+    transition: border-color 0.15s;
 }
 
-.ksce-input:focus, .ksce-select:focus {
+.ksce-textarea {
+    resize: vertical;
+    min-height: 36px;
+    font-family: inherit;
+    line-height: 1.4;
+}
+
+.ksce-input:focus, .ksce-select:focus, .ksce-textarea:focus {
     border-color: var(--ksce-primary);
 }
 
-.ksce-action-row {
+/* Status indicator */
+.ksce-gen-status {
+    font-size: 11px;
+    color: #34a853;
+    padding: 4px 0 0;
     display: flex;
-    gap: 8px;
-    margin-top: 12px;
+    align-items: center;
+    gap: 4px;
 }
 
-.ksce-btn-small {
-    flex: 1;
-    padding: 6px 12px;
-    border: 1px solid var(--ksce-primary);
-    border-radius: 4px;
+/* ===== AI Availability Warning ===== */
+.ksce-ai-notice {
+    margin-top: 8px;
+}
+
+.ksce-ai-warning {
+    padding: 10px 12px;
+    border: 1px solid #f9ab00;
+    border-radius: 6px;
+    background-color: #fef7e0;
+    color: #3c4043;
     font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    background-color: transparent;
+    line-height: 1.6;
+}
+
+@media (prefers-color-scheme: dark) {
+    .ksce-ai-warning {
+        background-color: #3c3000;
+        border-color: #a68200;
+        color: #e8eaed;
+    }
+}
+
+.ksce-ai-warning p {
+    margin: 0 0 6px;
+}
+
+.ksce-ai-warning p:last-child {
+    margin-bottom: 0;
+}
+
+.ksce-ai-warning ol {
+    margin: 4px 0;
+    padding-left: 18px;
+}
+
+.ksce-ai-warning li {
+    margin-bottom: 6px;
+}
+
+.ksce-flag-link {
     color: var(--ksce-primary);
-    transition: all 0.2s;
+    text-decoration: none;
+    font-family: monospace;
+    font-size: 11px;
+    word-break: break-all;
 }
 
-.ksce-gen-btn {
-    background-color: var(--ksce-primary);
-    color: #ffffff;
-}
-
-.ksce-gen-btn:hover {
-    background-color: var(--ksce-primary-hover);
-}
-
-.ksce-apply-btn:hover {
-    background-color: rgba(26, 115, 232, 0.04);
-}
-
-/* Removal of old floating panel classes */
-.ksce-panel.floating {
-    display: none !important;
+.ksce-flag-link:hover {
+    text-decoration: underline;
 }
