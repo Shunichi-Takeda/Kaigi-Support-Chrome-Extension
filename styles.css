@@ -7,7 +7,6 @@
     --ksce-primary: #1a73e8;
     --ksce-primary-hover: #1765cc;
     --ksce-secondary-bg: #f8f9fa;
-    --ksce-shadow: 0 1px 3px 0 rgba(60,64,67,0.30), 0 4px 8px 3px rgba(60,64,67,0.15);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -20,80 +19,50 @@
         --ksce-primary: #8ab4f8;
         --ksce-primary-hover: #aecbfa;
         --ksce-secondary-bg: #202124;
-        --ksce-shadow: 0 1px 3px 0 rgba(0,0,0,0.5), 0 4px 8px 3px rgba(0,0,0,0.3);
     }
 }
 
-.ksce-panel {
-    background-color: var(--ksce-bg);
+/* Title Prefix Styles */
+.ksce-prefix-wrapper {
+    margin-right: 8px;
+    flex-shrink: 0;
+}
+
+.ksce-prefix-select {
+    padding: 4px 8px;
     border: 1px solid var(--ksce-border);
-    border-radius: 8px;
-    padding: 16px;
-    font-family: 'Roboto', 'Segoe UI', Tahoma, sans-serif;
+    border-radius: 4px;
+    background-color: var(--ksce-input-bg);
     color: var(--ksce-text);
-    box-shadow: var(--ksce-shadow);
-    z-index: 10000; /* 十分に高い値 */
-    animation: ksce-fade-in 0.2s ease-out;
-    pointer-events: auto; /* 明示的にイベントを受け取る */
+    font-size: 14px;
+    outline: none;
 }
 
-@keyframes ksce-fade-in {
-    from { opacity: 0; transform: translateY(5px); }
-    to { opacity: 1; transform: translateY(0); }
+/* Integrated Fields Styles */
+.ksce-integrated-fields {
+    margin: 16px 0;
+    padding: 12px;
+    background-color: var(--ksce-secondary-bg);
+    border-radius: 8px;
+    border: 1px solid var(--ksce-border);
 }
 
-.ksce-panel.floating {
-    position: absolute; /* 親(Google Calendarのポップアップ)基準 */
-    width: 320px;
-    margin: 0;
-    max-height: 90vh;
-    overflow-y: auto;
+.ksce-field-row {
+    margin-bottom: 10px;
 }
 
-/* Custom scrollbar for the panel */
-.ksce-panel::-webkit-scrollbar {
-    width: 8px;
-}
-.ksce-panel::-webkit-scrollbar-track {
-    background: var(--ksce-secondary-bg);
-    border-radius: 4px;
-}
-.ksce-panel::-webkit-scrollbar-thumb {
-    background: var(--ksce-border);
-    border-radius: 4px;
-}
-.ksce-panel::-webkit-scrollbar-thumb:hover {
-    background: var(--ksce-label-color);
-}
-
-.ksce-title {
-    font-size: 15px;
-    font-weight: 500;
-    margin-bottom: 16px;
-    color: var(--ksce-primary);
-    display: flex;
-    align-items: center;
-    border-bottom: 1px solid var(--ksce-border);
-    padding-bottom: 10px;
-}
-
-.ksce-field {
-    margin-bottom: 14px;
-}
-
-.ksce-label {
+.ksce-compact-label {
     display: block;
     font-size: 11px;
     font-weight: 600;
     margin-bottom: 4px;
     color: var(--ksce-label-color);
     text-transform: uppercase;
-    letter-spacing: 0.8px;
 }
 
 .ksce-input, .ksce-select {
     width: 100%;
-    padding: 10px 12px;
+    padding: 8px 10px;
     border: 1px solid var(--ksce-border);
     border-radius: 4px;
     font-size: 13px;
@@ -101,72 +70,45 @@
     outline: none;
     background-color: var(--ksce-input-bg);
     color: var(--ksce-text);
-    transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .ksce-input:focus, .ksce-select:focus {
     border-color: var(--ksce-primary);
-    box-shadow: inset 0 0 0 1px var(--ksce-primary);
 }
 
-.ksce-button-group {
+.ksce-action-row {
     display: flex;
-    gap: 10px;
-    margin-top: 20px;
+    gap: 8px;
+    margin-top: 12px;
 }
 
-.ksce-button {
+.ksce-btn-small {
     flex: 1;
-    padding: 10px 16px;
-    border: 1px solid transparent;
+    padding: 6px 12px;
+    border: 1px solid var(--ksce-primary);
     border-radius: 4px;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 500;
     cursor: pointer;
-    transition: background-color 0.2s, box-shadow 0.2s;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    background-color: transparent;
+    color: var(--ksce-primary);
+    transition: all 0.2s;
 }
 
-.ksce-btn-generate {
+.ksce-gen-btn {
     background-color: var(--ksce-primary);
     color: #ffffff;
 }
 
-.ksce-btn-generate:hover {
+.ksce-gen-btn:hover {
     background-color: var(--ksce-primary-hover);
-    box-shadow: 0 1px 2px 0 rgba(0,0,0,0.3);
 }
 
-.ksce-btn-generate:disabled {
-    background-color: var(--ksce-border);
-    cursor: not-allowed;
+.ksce-apply-btn:hover {
+    background-color: rgba(26, 115, 232, 0.04);
 }
 
-.ksce-btn-apply {
-    background-color: var(--ksce-bg);
-    border: 1px solid var(--ksce-border);
-    color: var(--ksce-primary);
-}
-
-.ksce-btn-apply:hover {
-    background-color: var(--ksce-secondary-bg);
-    border-color: var(--ksce-primary);
-}
-
-.ksce-preview-area {
-    margin-top: 16px;
-    padding: 12px;
-    background-color: var(--ksce-secondary-bg);
-    border: 1px solid var(--ksce-border);
-    border-radius: 4px;
-    font-size: 12px;
-    font-family: 'Consolas', 'Monaco', monospace;
-    white-space: pre-wrap;
-    max-height: 250px;
-    overflow-y: auto;
-    display: none;
-    color: var(--ksce-text);
-    line-height: 1.5;
+/* Removal of old floating panel classes */
+.ksce-panel.floating {
+    display: none !important;
 }

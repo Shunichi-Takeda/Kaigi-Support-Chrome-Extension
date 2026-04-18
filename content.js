@@ -6,9 +6,9 @@
 (function() {
     'use strict';
 
-    console.log("[KSCE] Content script loaded.");
+    console.log("[KSCE] Content script loaded v1.3.0");
 
-    let lastGeneratedAgenda = "";
+    const PREFIX_OPTIONS = ["", "内", "外", "Zoom", "Meet", "来", "移動", "確保", "飲"];
 
     const ROLES = {
         "アイデア出し": "進行（発言を促す）、記録（可視化する）、時間（テンポを作る）",
@@ -26,57 +26,97 @@
         "7. キャリア・ビジョン（中長期の展望）"
     ];
 
-    const THREE_PROMISES = `
---- 【会議を「価値ある時間」にするための3つの約束】 ---
-• 資産にする： ホワイトボードはチームの財産。記録を残し、次のアクションを明確にする。
-• 熱量を生む： PCを閉じ、相手の話を聴く。その集中が、議論の質とスピードを上げる。
-• 存在を示す： 会議にいる以上、あなたは当事者。必ず発言し、結論に責任を持つ。`;
+    const THREE_PROMISES = [
+        "• 資産にする： ホワイトボードはチームの財産。記録を残し、次のアクションを明確にする。",
+        "• 熱量を生む： PCを閉じ、相手の話を聴く。その集中が、議論の質とスピードを上げる。",
+        "• 存在を示す： 会議にいる以上、あなたは当事者。必ず発言し、結論に責任を持つ。"
+    ];
 
-    async function generateAgenda(data) {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                let agenda = "";
-                if (data.type === "1on1") {
-                    agenda = `【種類】1on1
-【概要】${data.summary || "定期1on1対話"}
+    // Gemini Nano Wrapper
+    async function getAIResult(prompt) {
+        if (!window.ai || !window.ai.languageModel) {
+            console.warn("[KSCE] window.ai not found. Fallback to basic template.");
+            return null;
+        }
+        try {
+            const capabilities = await window.ai.languageModel.capabilities();
+            if (capabilities.available === 'no') return null;
 
---- 1on1の7つの目的カテゴリー（本日話す項目を参加者と選択） ---
-${ONE_ON_ONE_CATEGORIES.join('\n')}
-`;
-                } else {
-                    const role = ROLES[data.type] || "";
-                    agenda = `【種類】${data.type}
-【概要】${data.summary}
-【ゴール】${data.goal}
-【資料URL】${data.url}
-【議事録】${data.minutes} / ${data.location}
-
---- 代表的な役割 ---
-${role}
-${THREE_PROMISES}`;
-                }
-                resolve(agenda);
-            }, 300);
-        });
+            const session = await window.ai.languageModel.create();
+            const result = await session.prompt(prompt);
+            session.destroy();
+            return result;
+        } catch (e) {
+            console.error("[KSCE] AI Error:", e);
+            return null;
+        }
     }
 
-    function createPanel() {
-        if (document.getElementById('ksce-panel')) return null;
+    function injectPrefixDropdown(container) {
+        if (container.querySelector('.ksce-prefix-wrapper')) return;
 
-        const panel = document.createElement('div');
-        panel.id = 'ksce-panel';
-        panel.className = 'ksce-panel floating';
+        const titleInput = container.querySelector('input[jsname="YPqjbf"][aria-label*="タイトル"], input[aria-label*="Title"]');
+        if (!titleInput) {
+            console.debug("[KSCE] Title input not found for prefix injection.");
+            return;
+        }
 
-        // パネル内でのクリックがGoogleカレンダー側に「枠外クリック」として検知されないように保護
-        const stopPropagation = (e) => e.stopPropagation();
-        panel.addEventListener('click', stopPropagation);
-        panel.addEventListener('mousedown', stopPropagation);
-        panel.addEventListener('mouseup', stopPropagation);
+        const wrapper = titleInput.closest('div');
+        if (!wrapper) return;
 
-        panel.innerHTML = `
-            <div class="ksce-title">🗓 会議アジェンダ作成支援</div>
-            <div class="ksce-field">
-                <label class="ksce-label">種類</label>
+        const prefixDiv = document.createElement('div');
+        prefixDiv.className = 'ksce-prefix-wrapper';
+
+        const select = document.createElement('select');
+        select.className = 'ksce-prefix-select';
+        PREFIX_OPTIONS.forEach(opt => {
+            const option = document.createElement('option');
+            option.value = opt ? `【${opt}】` : "";
+            option.textContent = opt || "（空白）";
+            select.appendChild(option);
+        });
+
+        prefixDiv.appendChild(select);
+
+        // Ensure wrapper layout
+        wrapper.style.display = 'flex';
+        wrapper.style.flexDirection = 'row';
+        wrapper.style.alignItems = 'center';
+
+        wrapper.insertBefore(prefixDiv, wrapper.firstChild);
+        console.log("[KSCE] Injected prefix dropdown.");
+
+        // 保存ボタンを監視
+        const saveBtn = container.querySelector('[jsname="x8hlje"], #xSaveBu, button[aria-label*="保存"], button[aria-label*="Save"]');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', () => {
+                const prefix = select.value;
+                if (prefix && !titleInput.value.startsWith(prefix)) {
+                    titleInput.value = prefix + titleInput.value;
+                    titleInput.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            }, { capture: true });
+        }
+    }
+
+    function injectAgendaFields(container) {
+        if (container.querySelector('.ksce-integrated-fields')) return;
+
+        // 挿入ポイントを探す
+        const descSection = container.querySelector('.NRbSk, .tdXRXb, #xDescIn');
+        if (!descSection) {
+            console.debug("[KSCE] Description section not found for agenda fields injection.");
+            return;
+        }
+
+        // descSection のある程度の高さの親を探す
+        const insertionPoint = descSection.closest('.Shmoqf, .FrSOzf, .desc-section') || descSection.parentElement;
+
+        const fieldsDiv = document.createElement('div');
+        fieldsDiv.className = 'ksce-integrated-fields';
+        fieldsDiv.innerHTML = `
+            <div class="ksce-field-row">
+                <label class="ksce-compact-label">種類</label>
                 <select class="ksce-type ksce-select">
                     <option value="アイデア出し">アイデア出し</option>
                     <option value="意思決定">意思決定</option>
@@ -84,101 +124,108 @@ ${THREE_PROMISES}`;
                     <option value="1on1">1on1</option>
                 </select>
             </div>
-            <div class="ksce-field ksce-summary-wrapper">
-                <label class="ksce-label">概要</label>
-                <input type="text" class="ksce-summary ksce-input" placeholder="会議の簡単な背景">
+            <div class="ksce-field-row">
+                <label class="ksce-compact-label">やりたいこと</label>
+                <input type="text" class="ksce-task ksce-input" placeholder="この会議で何を行いたいか">
             </div>
-            <div class="ksce-field ksce-optional-field">
-                <label class="ksce-label">ゴール</label>
-                <input type="text" class="ksce-goal ksce-input" placeholder="この会議の着地点">
+            <div class="ksce-field-row">
+                <label class="ksce-compact-label">ゴール (自動生成可)</label>
+                <input type="text" class="ksce-goal ksce-input" placeholder="AI生成または直接入力">
             </div>
-            <div class="ksce-field ksce-optional-field">
-                <label class="ksce-label">資料URL</label>
-                <input type="text" class="ksce-url ksce-input" placeholder="参照資料のリンク">
+            <div class="ksce-field-row ksce-optional">
+                <label class="ksce-compact-label">資料URL</label>
+                <input type="text" class="ksce-url ksce-input" placeholder="URL">
             </div>
-            <div class="ksce-field ksce-optional-field">
-                <label class="ksce-label">議事録の要否</label>
-                <div style="display: flex; gap: 8px;">
-                    <select class="ksce-minutes-needed ksce-select" style="flex: 1;">
-                        <option value="要">要</option>
-                        <option value="不要">不要</option>
-                    </select>
-                    <input type="text" class="ksce-minutes-location ksce-input" style="flex: 2;" placeholder="記録場所">
-                </div>
+            <div class="ksce-action-row">
+                <button class="ksce-btn-small ksce-gen-btn">文言生成 (AI)</button>
+                <button class="ksce-btn-small ksce-apply-btn">説明欄へ反映</button>
             </div>
-            <div class="ksce-button-group">
-                <button class="ksce-button ksce-btn-generate">文言生成</button>
-                <button class="ksce-button ksce-btn-apply">反映</button>
-            </div>
-            <div class="ksce-preview ksce-preview-area"></div>
         `;
 
-        const typeSelect = panel.querySelector('.ksce-type');
-        const optionalFields = panel.querySelectorAll('.ksce-optional-field');
+        insertionPoint.parentElement.insertBefore(fieldsDiv, insertionPoint);
+        console.log("[KSCE] Injected agenda fields.");
 
-        typeSelect.addEventListener('change', () => {
-            const is1on1 = typeSelect.value === '1on1';
-            optionalFields.forEach(field => {
-                field.style.display = is1on1 ? 'none' : 'block';
-            });
-        });
+        const typeSelect = fieldsDiv.querySelector('.ksce-type');
+        const taskInput = fieldsDiv.querySelector('.ksce-task');
+        const goalInput = fieldsDiv.querySelector('.ksce-goal');
+        const urlInput = fieldsDiv.querySelector('.ksce-url');
 
-        panel.querySelector('.ksce-btn-generate').addEventListener('click', async (e) => {
+        // 文言生成ボタン
+        fieldsDiv.querySelector('.ksce-gen-btn').addEventListener('click', async (e) => {
             e.preventDefault();
             e.stopPropagation();
-            const data = {
-                type: typeSelect.value,
-                summary: panel.querySelector('.ksce-summary').value,
-                goal: panel.querySelector('.ksce-goal').value,
-                url: panel.querySelector('.ksce-url').value,
-                minutes: panel.querySelector('.ksce-minutes-needed').value,
-                location: panel.querySelector('.ksce-minutes-location').value
-            };
+            const titleInput = container.querySelector('input[jsname="YPqjbf"][aria-label*="タイトル"], input[aria-label*="Title"]');
+            const title = titleInput?.value || "";
+            const task = taskInput.value;
+            const type = typeSelect.value;
+
+            if (!task) {
+                alert("「何を行いたいか」を入力してください。");
+                return;
+            }
 
             const btn = e.target;
             btn.textContent = "生成中...";
             btn.disabled = true;
 
-            lastGeneratedAgenda = await generateAgenda(data);
+            const prompt = `あなたは会議のファシリテーターです。
+タイトル: ${title}
+やりたいこと: ${task}
+会議の種類: ${type}
 
-            const preview = panel.querySelector('.ksce-preview');
-            preview.textContent = lastGeneratedAgenda;
-            preview.style.display = 'block';
+上記の内容から、この会議の具体的な「ゴール（着地点）」を1文で作成してください。
+また、会議の「アジェンダ（構成）」を簡潔に箇条書きで作成してください。
+回答は「ゴール：〜〜〜\nアジェンダ（構成）：\n・〜〜〜」の形式にしてください。`;
 
-            btn.textContent = "文言生成";
+            let aiText = await getAIResult(prompt);
+
+            if (!aiText) {
+                aiText = `ゴール：${task}の完了\nアジェンダ：\n・現状の共有\n・${task}に関する議論\n・ネクストアクションの確認`;
+            }
+
+            const goalMatch = aiText.match(/ゴール：(.*)/);
+            if (goalMatch) goalInput.value = goalMatch[1].trim();
+
+            let finalAgenda = `【種類】${type}\n【何を行いたいか】${task}\n` + aiText;
+            if (urlInput.value) finalAgenda += `\n【資料URL】${urlInput.value}`;
+
+            if (type === "1on1") {
+                finalAgenda += `\n\n--- 1on1の7つの目的カテゴリー ---\n${ONE_ON_ONE_CATEGORIES.join('\n')}`;
+            } else {
+                const role = ROLES[type] || "";
+                finalAgenda += `\n\n--- 代表的な役割 ---\n${role}`;
+                finalAgenda += `\n\n--- 会議を「価値ある時間」にするための3つの約束 ---\n${THREE_PROMISES.join('\n')}`;
+            }
+
+            window.ksceLastGenerated = finalAgenda;
+            alert("文言を生成しました。「反映」ボタンで説明欄に記入できます。");
+
+            btn.textContent = "文言生成 (AI)";
             btn.disabled = false;
         });
 
-        panel.querySelector('.ksce-btn-apply').addEventListener('click', (e) => {
+        // 反映ボタン
+        fieldsDiv.querySelector('.ksce-apply-btn').addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            if (!lastGeneratedAgenda) {
+            if (!window.ksceLastGenerated) {
                 alert("先に「文言生成」を行ってください。");
                 return;
             }
-
-            if (confirm("カレンダーの説明欄にアジェンダを反映しますか？\n（既存の内容は上書きされます）")) {
-                applyToDescription(lastGeneratedAgenda);
-            }
+            applyToDescription(window.ksceLastGenerated);
         });
-
-        return panel;
     }
 
     function findDescriptionField() {
-        // ID指定 (フルエディタ / ポップアップ展開後)
-        const idField = document.querySelector('#xDescIn [contenteditable="true"]');
+        const idField = document.querySelector('#xDescIn [contenteditable="true"], #xDesc [contenteditable="true"]');
         if (idField) return idField;
 
-        // 一般的な属性
         const selectors = [
             'div[aria-label="説明"]',
             'div[aria-label="説明を追加"]',
-            'div[aria-label="Description"]',
-            'div[aria-label="Add description"]',
+            'div[aria-label*="Description"]',
             'div[contenteditable="true"][role="textbox"]'
         ];
-
         for (const selector of selectors) {
             const elements = document.querySelectorAll(selector);
             for (const el of elements) {
@@ -190,27 +237,25 @@ ${THREE_PROMISES}`;
 
     function applyToDescription(text) {
         let target = findDescriptionField();
-
         if (!target) {
-            // 説明欄が隠れている（ボタン状態）の場合
             const addDescriptionBtn = Array.from(document.querySelectorAll('span, div, button, [data-key="description"]'))
                 .find(el => {
                     const txt = el.textContent || "";
-                    const isMatch = (txt.includes("説明") && txt.includes("追加")) ||
-                                    (txt.includes("Add") && txt.includes("description")) ||
-                                    (el.getAttribute('data-key') === 'description');
-                    return isMatch && (el.getAttribute('role') === 'button' || el.closest('[role="button"]'));
+                    return ((txt.includes("説明") && txt.includes("追加")) ||
+                            (txt.includes("Add") && txt.includes("description")) ||
+                            (el.getAttribute('data-key') === 'description')) &&
+                           (el.getAttribute('role') === 'button' || el.closest('[role="button"]'));
                 });
 
             if (addDescriptionBtn) {
                 const clickTarget = addDescriptionBtn.getAttribute('role') === 'button' ? addDescriptionBtn : addDescriptionBtn.closest('[role="button"]');
                 clickTarget.click();
                 setTimeout(() => {
-                    target = findDescriptionField();
-                    if (target) doApply(target, text);
+                    const t = findDescriptionField();
+                    if (t) doApply(t, text);
                 }, 300);
             } else {
-                alert("説明フィールドが見つかりませんでした。画面上の「説明を追加」をクリックしてから再度お試しください。");
+                alert("説明フィールドが見つかりませんでした。");
             }
         } else {
             doApply(target, text);
@@ -221,66 +266,23 @@ ${THREE_PROMISES}`;
         target.focus();
         document.execCommand('selectAll', false, null);
         document.execCommand('insertText', false, text);
-
         target.dispatchEvent(new Event('input', { bubbles: true }));
-        console.log("[KSCE] Applied agenda.");
     }
 
     function injectPanel() {
-        // 1. 詳細画面 (フルエディタ)
-        const fullEditContainer = document.querySelector('div[jsname="nB7Rvb"]');
-        // 2. 簡易ポップアップ
-        const popupContainer = document.querySelector('div[jsname="ssXDle"]');
+        const fullEdit = document.querySelector('div[jsname="nB7Rvb"]');
+        const popup = document.querySelector('div[jsname="ssXDle"]');
+        const container = fullEdit || popup;
 
-        const activeContainer = fullEditContainer || popupContainer;
-
-        if (!activeContainer) {
-            const existingPanel = document.getElementById('ksce-panel');
-            if (existingPanel) existingPanel.remove();
+        if (!container) {
             return;
         }
 
-        let panel = document.getElementById('ksce-panel');
-        if (!panel) {
-            panel = createPanel();
-            if (panel) {
-                // ポップアップや詳細画面の要素内に直接入れることで、
-                // Googleカレンダー側の「枠外クリック」判定に引っかからないようにする
-                activeContainer.appendChild(panel);
-                console.log("[KSCE] Injected panel inside active container.");
-            }
-        }
-
-        if (panel && panel.parentElement !== activeContainer) {
-            // コンテナが切り替わった場合（例：ポップアップから詳細画面へ移行）の再配置
-            activeContainer.appendChild(panel);
-        }
-
-        if (panel) {
-            repositionPanel(panel, activeContainer);
-        }
-    }
-
-    function repositionPanel(panel, container) {
-        // コンテナの右外側に絶対配置
-        // container自体に position: absolute/fixed がついていることを期待
-        panel.style.top = '0px';
-        panel.style.left = '100%';
-        panel.style.marginLeft = '15px';
-        panel.style.display = 'block';
-
-        // 画面右端からはみ出る場合の調整
-        const rect = panel.getBoundingClientRect();
-        if (rect.right > window.innerWidth) {
-            panel.style.left = 'auto';
-            panel.style.right = '100%';
-            panel.style.marginLeft = '0px';
-            panel.style.marginRight = '15px';
-        }
+        injectPrefixDropdown(container);
+        injectAgendaFields(container);
     }
 
     setInterval(injectPanel, 1000);
-
     const observer = new MutationObserver(injectPanel);
     observer.observe(document.body, { childList: true, subtree: true });
 
