@@ -6,9 +6,10 @@
 (function() {
     'use strict';
 
+    console.log("[KSCE] Content script loaded.");
+
     let lastGeneratedAgenda = "";
 
-    // 会議の種類に応じた役割の定義
     const ROLES = {
         "アイデア出し": "進行（発言を促す）、記録（可視化する）、時間（テンポを作る）",
         "意思決定": "決定者（最終決断を下す）、提案者（判断材料を提示）、異論役（リスクを指摘）",
