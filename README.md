@@ -2,6 +2,19 @@
 
 Googleカレンダーの予定作成画面に「AIアジェンダ生成パネル」を統合するChrome拡張機能です。
 Gemini Nano（ブラウザ内蔵AI）を活用し、会議の目的に応じた最適なアジェンダ・ゴール・役割分担を自動生成します。
+<table border="0" style="border-collapse: collapse; border: none;">
+  <tr>
+    <td style="border: none; vertical-align: middle;">
+      <img src="https://github.com/user-attachments/assets/50781689-9900-47ad-843b-6a1a39b613af" width="351" alt="image1">
+    </td>
+    <td style="border: none; vertical-align: middle; padding: 0 20px;">
+      <span style="font-size: 40px; color: #5f6368;">→</span>
+    </td>
+    <td style="border: none; vertical-align: middle;">
+      <img src="https://github.com/user-attachments/assets/fa3944c4-05b1-45a1-8b23-2a7ff4ed764f" width="606" alt="image2">
+    </td>
+  </tr>
+</table>
 
 ## 特徴
 
