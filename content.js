@@ -110,28 +110,6 @@
                 resolve(response?.result || null);
             });
         });
-
-        prefixDiv.appendChild(select);
-
-        // Ensure wrapper layout
-        wrapper.style.display = 'flex';
-        wrapper.style.flexDirection = 'row';
-        wrapper.style.alignItems = 'center';
-
-        wrapper.insertBefore(prefixDiv, wrapper.firstChild);
-        console.log("[KSCE] Injected prefix dropdown.");
-
-        // 保存ボタンを監視
-        const saveBtn = container.querySelector('[jsname="x8hlje"], #xSaveBu, button[aria-label*="保存"], button[aria-label*="Save"]');
-        if (saveBtn) {
-            saveBtn.addEventListener('click', () => {
-                const prefix = select.value;
-                if (prefix && !titleInput.value.startsWith(prefix)) {
-                    titleInput.value = prefix + titleInput.value;
-                    titleInput.dispatchEvent(new Event('input', { bubbles: true }));
-                }
-            }, { capture: true });
-        }
     }
 
     /**
@@ -221,23 +199,77 @@
         const panel = buildGenPanel(container);
 
         if (isFullEditor) {
-            // Full editor: insert before the title container (DgKtsd) inside scrollable area
-            const titleContainer = container.querySelector('div.DgKtsd');
-            const scrollArea = container.querySelector('div[jsname="fxaXHe"]');
-            if (titleContainer && titleContainer.parentElement) {
-                titleContainer.parentElement.insertBefore(panel, titleContainer);
-            } else if (scrollArea) {
-                scrollArea.prepend(panel);
-            } else {
-                // fallback
+            // Full editor: insert into the RIGHT column (ゲスト/会議室 side), above the tab bar
+            let inserted = false;
+
+            // Strategy 1: Find the right-side tablist by text content ("ゲスト" or "Guest")
+            const tabLists = container.querySelectorAll('[role="tablist"]');
+            let rightTabList = null;
+            for (const tl of tabLists) {
+                if (tl.textContent.includes('ゲスト') || tl.textContent.includes('Guest')) {
+                    rightTabList = tl;
+                    break;
+                }
+            }
+            if (rightTabList && rightTabList.parentElement) {
+                rightTabList.parentElement.insertBefore(panel, rightTabList);
+                inserted = true;
+                console.log("[KSCE] Inserted above right column tabs (ゲスト)");
+            }
+
+            // Strategy 2: Find the single tablist ("予定の詳細" / "時間を探す") and insert before its parent
+            if (!inserted && tabLists.length >= 1) {
+                let tabContainer = tabLists[0];
+                for (let i = 0; i < 3; i++) {
+                    if (!tabContainer.parentElement) break;
+                    tabContainer = tabContainer.parentElement;
+                }
+                if (tabContainer.parentElement) {
+                    tabContainer.parentElement.insertBefore(panel, tabContainer);
+                    inserted = true;
+                    console.log("[KSCE] Inserted before tab container");
+                }
+            }
+
+            // Strategy 3: Find "終日" checkbox row and insert after it
+            if (!inserted) {
+                const allDayCheckbox = container.querySelector('input[aria-label*="終日"], input[aria-label*="All day"]');
+                if (allDayCheckbox) {
+                    let row = allDayCheckbox;
+                    for (let i = 0; i < 4; i++) {
+                        if (!row.parentElement) break;
+                        row = row.parentElement;
+                    }
+                    if (row.nextElementSibling) {
+                        row.parentElement.insertBefore(panel, row.nextElementSibling);
+                        inserted = true;
+                        console.log("[KSCE] Inserted after 終日 row");
+                    }
+                }
+            }
+
+            // Strategy 4: Walk up from title, skip header rows
+            if (!inserted) {
                 let titleRow = titleInput;
-                for (let i = 0; i < 5; i++) {
+                for (let i = 0; i < 8; i++) {
                     if (!titleRow.parentElement) break;
                     titleRow = titleRow.parentElement;
-                    if (titleRow.parentElement === container) break;
+                    if (titleRow.parentElement && titleRow.parentElement.children.length >= 2) {
+                        const nextSibling = titleRow.nextElementSibling;
+                        if (nextSibling) {
+                            titleRow.parentElement.insertBefore(panel, nextSibling);
+                            inserted = true;
+                            console.log("[KSCE] Inserted after title row (fallback)");
+                            break;
+                        }
+                    }
                 }
-                titleRow.parentElement.insertBefore(panel, titleRow);
+                if (!inserted) {
+                    container.appendChild(panel);
+                    console.log("[KSCE] Appended to container (last resort)");
+                }
             }
+
             panel.classList.add('ksce-gen-panel-full');
         } else {
             // Popup: insert before title row (existing behavior)
@@ -752,12 +784,17 @@ ${typeGuidance}
                 // --- 2. Generate title (35 chars max) ---
                 const titleInput = container.querySelector('input[jsname="YPqjbf"][aria-label*="タイトル"], input[aria-label*="Title"]');
                 if (titleInput) {
-                    if (type === '1on1' || type === '自由記入') {
-                        // 1on1: simple title from task, no AI
+                    if (type === '1on1') {
+                        // 1on1: fixed title
+                        const finalTitle = place ? place + '1on1' : '1on1';
+                        setInputValue(titleInput, finalTitle);
+                        console.log("[KSCE] 1on1 Title set:", finalTitle);
+                    } else if (type === '自由記入') {
+                        // 自由記入: title from task
                         const generatedTitle = task.substring(0, 35);
                         const finalTitle = place ? place + generatedTitle : generatedTitle;
                         setInputValue(titleInput, finalTitle);
-                        console.log("[KSCE] 1on1 Title set:", finalTitle);
+                        console.log("[KSCE] 自由記入 Title set:", finalTitle);
                     } else {
                         const goalMatch = finalAgenda.match(/＜ゴール＞\n?(.*)/);
                         const goalText = goalMatch ? goalMatch[1].trim() : task;
@@ -808,6 +845,8 @@ ${typeGuidance}
                 geminiBtn.classList.remove('generating');
             }
         });
+
+        return panel;
     }
 
     function saveFormState(panel) {
@@ -985,10 +1024,11 @@ ${typeGuidance}
     }
 
     function injectPanel() {
+        const fullEdit = document.querySelector('div[jsname="nB7Rvb"]');
         const popup = document.querySelector('div[jsname="ssXDle"]');
-        if (!popup) return;
 
-        injectGenPanel(popup);
+        if (fullEdit) injectGenPanel(fullEdit);
+        if (popup) injectGenPanel(popup);
     }
 
     const observer = new MutationObserver(scheduleInject);
