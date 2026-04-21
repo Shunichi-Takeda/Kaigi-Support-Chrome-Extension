@@ -8,7 +8,7 @@
 
     console.log("[KSCE] Content script loaded v1.0.0");
 
-    const PREFIX_OPTIONS = ["", "内", "外", "Zoom", "Meet", "来", "移動", "確保", "飲"];
+    const PREFIX_OPTIONS = ["", "内", "外", "Zoom", "Meet", "来", "移動", "確保", "飲", "私用"];
 
     const REFINED_ROLES = {
         "アイデア出し": [
