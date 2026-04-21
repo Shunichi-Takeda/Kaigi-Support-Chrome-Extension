@@ -38,6 +38,13 @@
     transition: all 0.25s ease;
     position: relative;
     z-index: 10;
+/* Full editor: inline, no float */
+.ksce-gen-panel.ksce-gen-panel-full {
+    display: block;
+    position: static;
+    z-index: auto;
+    margin: 16px 24px 24px 24px;
+    width: auto;
 }
 
 /* Popup: 1.5x wider — target outer container and inner */
