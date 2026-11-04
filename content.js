@@ -823,7 +823,7 @@ ${typeGuidance}
                 }
 
                 // --- 3. Write description (LAST, so focus stays here) ---
-                writeDescriptionOverwrite(finalAgenda);
+                writeDescriptionOverwrite(finalAgenda, container);
 
                 // Collapse & show status
                 panel.classList.add('collapsed');
@@ -883,43 +883,76 @@ ${typeGuidance}
 
     // ===== Description Writing =====
 
-    function writeDescriptionOverwrite(text) {
-        let target = findDescriptionField();
+    function writeDescriptionOverwrite(text, container) {
+        const scope = (container && container.isConnected) ? container : document;
+        const target = findDescriptionField(scope);
         if (target) {
             doApply(target, text);
             return;
         }
 
-        // Try to activate description field
-        const candidates = [];
-        document.querySelectorAll('span, div').forEach(el => {
-            const t = (el.textContent || '').trim();
-            if ((t.includes('説明') && (t.includes('追加') || t.includes('添付'))) ||
-                t === '説明を追加' || t === 'Add description') {
-                candidates.push(el);
+        // The description editor is hidden until its "add description" button is clicked
+        // (quick-create popup: 「説明またはGoogle ドライブの添付ファイルを追加」).
+        const opener = findDescriptionOpener(scope);
+        if (opener) opener.click();
+
+        // Wait for the editor to appear (rendering can take longer than one tick).
+        const deadline = Date.now() + 3000;
+        const poll = () => {
+            const t = findDescriptionField(scope);
+            if (t) {
+                doApply(t, text);
+            } else if (Date.now() < deadline) {
+                setTimeout(poll, 100);
+            } else {
+                console.warn("[KSCE] Description field not found after click.", { openerFound: !!opener });
             }
-        });
-        const ariaBtn = document.querySelector('div[aria-label="説明を追加"]');
-        if (ariaBtn) candidates.unshift(ariaBtn);
-
-        for (const c of candidates) { c.click(); }
-
-        setTimeout(() => {
-            const t = findDescriptionField();
-            if (t) doApply(t, text);
-            else console.warn("[KSCE] Description field not found after click.");
-        }, 500);
+        };
+        setTimeout(poll, 100);
     }
 
-    function findDescriptionField() {
+    function isVisible(el) {
+        return !!el && el.offsetParent !== null;
+    }
+
+    function findDescriptionField(scope = document) {
         const selectors = [
+            // Current Google Calendar: editor is labelled via aria-labelledby (no aria-label)
+            '#xDescIn [contenteditable="true"]',
+            '[contenteditable="true"][aria-labelledby="xDescIn-label"]',
+            // Older markup
             'div[aria-label="説明"][contenteditable="true"]',
             'div[aria-label="説明を追加"][contenteditable="true"]',
             'div[aria-label*="Description"][contenteditable="true"]',
         ];
         for (const sel of selectors) {
-            const el = document.querySelector(sel);
-            if (el && el.offsetParent !== null) return el;
+            const el = [...scope.querySelectorAll(sel)].find(isVisible);
+            if (el) return el;
+        }
+
+        // Fallback: a visible multi-line textbox whose label mentions 説明 / description
+        const editors = scope.querySelectorAll('[contenteditable="true"][role="textbox"]');
+        for (const el of editors) {
+            if (!isVisible(el) || el.closest('.ksce-gen-panel')) continue;
+            const labelId = el.getAttribute('aria-labelledby');
+            const label = (labelId && document.getElementById(labelId)?.textContent) ||
+                el.getAttribute('aria-label') || '';
+            if (/説明|description/i.test(label)) return el;
+        }
+        return null;
+    }
+
+    function findDescriptionOpener(scope = document) {
+        const isOpenerText = (t) =>
+            (t.includes('説明') && (t.includes('追加') || t.includes('添付'))) ||
+            /add description/i.test(t);
+
+        // Click only the button itself, never its ancestors or our own panel.
+        const buttons = scope.querySelectorAll('button, [role="button"], div[aria-label="説明を追加"]');
+        for (const b of buttons) {
+            if (!isVisible(b) || b.closest('.ksce-gen-panel')) continue;
+            const t = (b.getAttribute('aria-label') || b.textContent || '').trim();
+            if (isOpenerText(t)) return b;
         }
         return null;
     }
